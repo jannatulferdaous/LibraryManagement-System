@@ -1,17 +1,16 @@
 # Library Management System
 
-Enterprise .NET technical assessment submission. Built incrementally following a 14-day
-Onion Architecture + CQRS curriculum. This README is updated as each day's work lands.
+Enterprise .NET LibraryManagementSystem. Built incrementally following Onion Architecture + CQRS curriculum. 
 
 ## Stack
 - ASP.NET Core 8 (Web API)
 - Entity Framework Core 8 + SQL Server
-- MediatR (CQRS) — added Day 4-5
-- FluentValidation — added Day 6
-- Serilog — added Day 8
-- JWT Bearer Auth — added Day 10
-- xUnit + Moq + FluentAssertions — added Day 12
-- Angular — added Day 14
+- MediatR (CQRS) 
+- FluentValidation 
+- Serilog 
+- JWT Bearer Auth 
+- xUnit + Moq + FluentAssertions 
+- Angular 
 
 ## Solution Structure
 
@@ -35,24 +34,24 @@ external dependencies; each layer only knows about the layers inside it).
 
 ### Prerequisites
 - .NET 8 SDK
-- SQL Server (local install, or via Docker — see Day 13)
+- SQL Server (local install, or via Docker)
 
 ### Configure the database connection
 1. Copy `src/Api/appsettings.Example.json` values into `src/Api/appsettings.Development.json`
    (this file is gitignored — never commit real credentials).
-2. Or use `dotnet user-secrets` (recommended, set up Day 10):
+2. Or use `dotnet user-secrets` (recommended):
    ```bash
    dotnet user-secrets init --project src/Api
    dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=LibraryManagementDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;" --project src/Api
    ```
 
-### Run migrations (from Day 9 onward)
+### Run migrations 
 ```bash
 dotnet ef migrations add InitialCreate -p src/Infrastructure -s src/Api
 dotnet ef database update -p src/Infrastructure -s src/Api
 ```
 
-### Run with Docker (Day 13 onward)
+### Run with Docker 
 ```bash
 docker-compose up --build
 ```
@@ -77,7 +76,7 @@ dotnet run --project src/Api
 ```
 Swagger UI: `https://localhost:{port}/swagger`
 
-### Log in (Day 10 onward)
+### Log in 
 A default Admin account is seeded into the database on first migration:
 - **Email:** `admin@library.local`
 - **Password:** `Admin@123`
@@ -92,42 +91,42 @@ dotnet test
 ```
 Runs the full `Application.UnitTests` suite (~25 tests: domain logic, strategy pattern,
 handler orchestration via Moq, FluentValidation rules). `Api.IntegrationTests` is scaffolded
-but not yet populated (optional stretch goal, see Day 12 of the curriculum).
+but not yet populated (optional stretch goal, see Step 12 of the curriculum).
 
 ## Assumptions & Design Decisions
-- **Loan period:** fixed at 14 days by default (configurable per call to `Loan.Create`).
+- **Loan period:** fixed  by default (configurable per call to `Loan.Create`).
 - **Max active loans per member:** 5, enforced in `Member.CanBorrow()`.
 - **Fine threshold to block further borrowing:** 20 currency units outstanding.
 - **Reservation fulfillment:** FIFO by creation date; the domain event raised on
-  `BookCopy.Return()` is intended to notify the next member in queue (Day 11).
+  `BookCopy.Return()` is intended to notify the next member in queue (Step 11).
 - **Aggregate boundaries:** `BookCopy` is not its own aggregate root — it's only
   ever modified through its parent `Book` (except direct status transitions during
   Borrow/Return, which are narrow, well-defined operations).
 
 ## Progress Log
 
-- **Day 1** — Solution scaffolded (Domain, Application, Infrastructure, Api, 2 test
+- **Step 1** — Solution scaffolded (Domain, Application, Infrastructure, Api, 2 test
   projects). Core entities: `Book`, `BookCopy`, `Branch`, `Member`, `Loan`, `Reservation`.
   Domain exceptions: `NotFoundException`, `BusinessRuleException`.
-- **Day 2** — Generic `IRepository<T>` + `IUnitOfWork` defined in Application.
+- **Step 2** — Generic `IRepository<T>` + `IUnitOfWork` defined in Application.
   `EfRepository<T>` implemented in Infrastructure against a minimal `ApplicationDbContext`
-  (full entity configuration lands Day 9). DI wired via `Infrastructure.DependencyInjection`.
+  (full entity configuration lands Step 9). DI wired via `Infrastructure.DependencyInjection`.
   API now builds and runs with Swagger, though no endpoints exist yet.
 
-- **Day 3** — Specification pattern introduced: `ISpecification<T>` + `BaseSpecification<T>`
+- **Step 3** — Specification pattern introduced: `ISpecification<T>` + `BaseSpecification<T>`
   in Application, `SpecificationEvaluator` in Infrastructure (the only place that translates
   a spec into EF Core LINQ). `IRepository<T>` gained `ListAsync(ISpecification<T>)` and
   `CountAsync(ISpecification<T>)` overloads. Real specifications added: book search/browse,
   available-copies-at-branch, overdue loans, active loans per member, FIFO reservation queue.
 
-- **Day 4** — MediatR wired in (`AddMediatR` in Program.cs). Full CQRS slice for the Book
+- **Step 4** — MediatR wired in (`AddMediatR` in Program.cs). Full CQRS slice for the Book
   Management module: `CreateBookCommand`, `UpdateBookCommand`, `DeleteBookCommand`,
-  `GetBooksQuery` (paged, reuses Day 3's `BooksBySearchSpecification`), `GetBookByIdQuery`.
+  `GetBooksQuery` (paged, reuses Step 3's `BooksBySearchSpecification`), `GetBookByIdQuery`.
   Added `PagedResult<T>`, `BookDto`, and a manual (no AutoMapper yet) mapping extension.
   `BooksController` now live with real endpoints - controllers are a one-line `Send` per
   action. Domain gained `Book.UpdateDetails()` since properties are private-set by design.
 
-- **Day 5** — `LoggingBehavior<TRequest,TResponse>` added as a MediatR pipeline behavior
+- **Step 5** — `LoggingBehavior<TRequest,TResponse>` added as a MediatR pipeline behavior
   (`AddOpenBehavior`), wrapping every command/query with entry/exit + elapsed-time logging
   automatically. Same CQRS shape from Books extended to **Branch Management** and
   **Member Management**: full Create/Update/Delete/GetAll(paged+search)/GetById for both,
@@ -135,7 +134,7 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   includes a real business rule (blocks delete if active loans or outstanding fines exist).
   Domain gained `Branch.UpdateDetails()` and `Member.UpdateDetails()`.
 
-- **Day 6** — FluentValidation added. `Domain.Exceptions.ValidationException` defined
+- **Step 6** — FluentValidation added. `Domain.Exceptions.ValidationException` defined
   (plain `IDictionary<string,string[]>` of errors, no FluentValidation dependency in
   Domain). `ValidationBehavior<TRequest,TResponse>` added to the MediatR pipeline
   (registered after `LoggingBehavior`, so every attempt is logged even when invalid).
@@ -143,7 +142,7 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   paging validators on `GetBooksQuery`, `GetBranchesQuery`, `GetMembersQuery` - proof
   validation isn't just for writes.
 
-- **Day 7** — Centralized exception handling via .NET 8's `IExceptionHandler`.
+- **Step 7** — Centralized exception handling via .NET 8's `IExceptionHandler`.
   `GlobalExceptionHandler` maps `NotFoundException` → 404, `ValidationException` → 422
   (with the field-level errors dictionary attached), `BusinessRuleException` → 409,
   `UnauthorizedAccessException` → 403, everything else → 500 (logged as an error; the
@@ -151,15 +150,15 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   Registered via `AddExceptionHandler<T>()` + `AddProblemDetails()` and `app.UseExceptionHandler()`
   - no try/catch blocks anywhere in controllers or handlers.
 
-- **Day 8** — Serilog wired in via `builder.Host.UseSerilog(...)`, replacing the default
+- **Step 8** — Serilog wired in via `builder.Host.UseSerilog(...)`, replacing the default
   logging provider. Writes structured logs to console and a daily-rolling file
-  (`logs/library-*.log`, 14-day retention). Enriched with an `Application` property and
+  (`logs/library-*.log`, 14-Step retention). Enriched with an `Application` property and
   full log context. `app.UseSerilogRequestLogging()` adds one structured line per HTTP
   request (method, path, status, elapsed ms) - distinct from `LoggingBehavior`, which logs
   per MediatR command/query instead, so both HTTP-level and use-case-level activity are
   visible. `appsettings.json` overrides `Microsoft`/`EF Core` noise down to Warning.
 
-- **Day 9** — Full EF Core model configuration: `IEntityTypeConfiguration<T>` classes for
+- **Step 9** — Full EF Core model configuration: `IEntityTypeConfiguration<T>` classes for
   all 6 entities (indexes, max lengths, unique constraints on `Book.Isbn` and
   `Member.Email`, enum-to-string conversions for `Status`/`MembershipType`/`ReservationStatus`).
   `BookCopy` gained a `RowVersion` (SQL Server `rowversion`) concurrency token via
@@ -170,7 +169,7 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   **Migrations were not generated in this environment** (no .NET SDK available in the
   sandbox that built this zip) - run the commands below locally once you have the repo.
 
-- **Day 10** — JWT authentication + policy-based authorization.
+- **Step 10** — JWT authentication + policy-based authorization.
   `AppUser` entity added (Admin/Librarian/BranchManager/Member roles), with a seeded
   default Admin account (`admin@library.local` / `Admin@123` - **change immediately**
   after first login). `POST /api/v1/auth/login` issues a signed JWT; `POST
@@ -181,12 +180,12 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   controllers. `ApplicationDbContext.SaveChangesAsync` now auto-populates
   `CreatedAt`/`CreatedBy`/`ModifiedAt`/`ModifiedBy` on every entity via
   `ICurrentUserService` + `IDateTimeProvider` - closes the loop on audit fields that had
-  sat unused since Day 1. **Secrets**: `Jwt:Key` lives in `appsettings.Development.json`
+  sat unused since Step 1. **Secrets**: `Jwt:Key` lives in `appsettings.Development.json`
   (gitignored - convenience for running this zip locally, never actually committed to
   Git) or `dotnet user-secrets` for anything beyond local dev; `appsettings.Example.json`
   documents the shape for reviewers without exposing real values.
 
-- **Day 11** — Strategy pattern (`IFineCalculationStrategy`: Standard/Student/Premium,
+- **Step 11** — Strategy pattern (`IFineCalculationStrategy`: Standard/Student/Premium,
   resolved by `IFineStrategyFactory` based on `Member.MembershipType`) and Factory pattern
   (`INotificationFactory` resolves Email/InApp `INotificationMessage` implementations,
   both currently logging stubs - swapping in real SMTP/SendGrid touches only one class).
@@ -195,12 +194,12 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   MediatR, and `ApplicationDbContext.SaveChangesAsync` collects + dispatches events only
   *after* a successful save. `BookCopy.Return()` raises `BookReturnedEvent`;
   `BookReturnedEventHandler` reacts by checking the FIFO reservation queue
-  (`ActiveReservationsForBookSpecification`, Day 3) and notifying the next member -
+  (`ActiveReservationsForBookSpecification`, Step 3) and notifying the next member -
   entirely decoupled from `ReturnBookCommandHandler`, which has no idea that handler
   exists. Full Borrow/Return/Reservation CQRS slices added, with `BorrowBookCommand`
-  specifically exercising the Day 9 optimistic concurrency token under race conditions.
+  specifically exercising the Step 9 optimistic concurrency token under race conditions.
 
-- **Day 12** — Unit test suite populated: `Application.UnitTests` now has domain logic
+- **Step 12** — Unit test suite populated: `Application.UnitTests` now has domain logic
   tests (`BookCopy`, `Member`, `Loan` - pure state-machine logic, no mocking),
   table-driven `[Theory]` tests for all three fine calculation strategies plus the
   factory's resolution logic, Moq-based handler tests (`CreateBookCommandHandler`,
@@ -209,11 +208,11 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   `TestValidate`-based validator tests. ~25 focused tests total, prioritizing pure domain
   logic and business rule guards over shallow "getter returns what constructor set" tests.
 
-- **Day 13** — Bonus round, plus closing the Reports functional-requirement gap.
+- **Step 13** — Bonus round, plus closing the Reports functional-requirement gap.
   **Reports module** added (was a required module, not yet built): `GetOverdueLoansReportQuery`
   and `GetMostBorrowedBooksReportQuery`, both batch-fetching related entities via the new
   reusable `ByIdsSpecification<T>` and joining in memory (avoiding N+1 queries, since
-  Loan/Reservation deliberately have no navigation properties - Day 9). **Excel export**
+  Loan/Reservation deliberately have no navigation properties - Step 9). **Excel export**
   for the overdue loans report via ClosedXML (`GET /api/v1/reports/overdue-loans/export`).
   **API Versioning**: `Asp.Versioning.Mvc` wired in, every controller now has a real
   `[ApiVersion("1.0")]` and `api/v{version:apiVersion}/[controller]` route (not just a
@@ -222,9 +221,9 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   (API + SQL Server, with a healthcheck-gated `depends_on` so the API doesn't start before
   the DB is ready). Migrations now auto-apply on startup in Development for convenience.
   **Skipped deliberately**: Redis and background jobs - low ROI for the remaining time
-  budget relative to Days 14's frontend work.
+  budget relative to Steps 14's frontend work.
 
-- **Day 14 (final)** — Angular 18 frontend added under `/frontend` (standalone components,
+- **Step 14 (final)** — Angular 18 frontend added under `/frontend` (standalone components,
   functional guards/interceptors, lazy-loaded routes - confirmed with a real `ng build`,
   not just written and assumed correct; caught and fixed a genuine TypeScript field-
   initialization-order bug across 6 components in the process). `AuthService` decodes
@@ -235,7 +234,7 @@ but not yet populated (optional stretch goal, see Day 12 of the curriculum).
   (search/paginate/create/delete), Members, Branches, Borrow/Return, Reservations,
   Reports (with a working Excel export download). See `frontend/README.md` for setup.
 
-**14-day curriculum complete.** Every functional module (Auth, Branch, Book, Member,
+**14-Step curriculum complete.** Every functional module (Auth, Branch, Book, Member,
 Borrow/Return, Reservation, Reports) has a full CQRS backend slice and a frontend screen.
 Bonus features delivered: CQRS, Domain Events, Optimistic Concurrency, API Versioning,
 Health Checks, Docker, Excel Export, PDF Export, Email Notifications (real SMTP via
@@ -243,7 +242,7 @@ MailKit, with graceful fallback to logging when unconfigured), Redis distributed
 CI/CD (GitHub Actions: build + test on push/PR). Not implemented: Background Jobs
 (Hangfire/Quartz) - see "Post-Curriculum Additions" below for why.
 
-## Post-Curriculum Additions (after Day 14)
+## Post-Curriculum Additions (after Step 14)
 
 Closed out the remaining bonus list items:
 
