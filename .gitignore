@@ -1,0 +1,23 @@
+## .NET
+bin/
+obj/
+*.user
+
+## Rider / VS
+.vs/
+.idea/
+
+## Local secrets - never commit real values
+src/Api/appsettings.Development.json
+*.pfx
+
+## Test results
+[Tt]est[Rr]esult*/
+coverage/
+
+## Serilog file sink output
+logs/
+
+## OS
+.DS_Store
+Thumbs.db
